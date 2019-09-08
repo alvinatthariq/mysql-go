@@ -97,11 +97,79 @@ func insertUsersMultipart(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func updateUsersMultipart(w http.ResponseWriter, r *http.Request) {
+	var response Response
+
+	db := connect()
+	defer db.Close()
+
+	err := r.ParseMultipartForm(4096)
+	if err != nil {
+		panic(err)
+	}
+
+	id := r.FormValue("user_id")
+	first_name := r.FormValue("first_name")
+	last_name := r.FormValue("last_name")
+
+	_, err = db.Exec("UPDATE person set first_name = ?, last_name = ? where id = ?",
+		first_name,
+		last_name,
+		id,
+	)
+
+	if err != nil {
+		log.Print(err)
+	}
+
+	response.Status = 1
+	response.Message = "Success Update Data"
+
+	log.Print("Update data to database")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+
+}
+
+func deleteUsersMultipart(w http.ResponseWriter, r *http.Request) {
+
+	var response Response
+
+	db := connect()
+	defer db.Close()
+
+	err := r.ParseMultipartForm(4096)
+	if err != nil {
+		panic(err)
+	}
+
+	id := r.FormValue("user_id")
+
+	_, err = db.Exec("DELETE from person where id = ?",
+		id,
+	)
+
+	if err != nil {
+		log.Print(err)
+	}
+
+	response.Status = 1
+	response.Message = "Success Delete Data"
+	log.Print("Delete data to database")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+
+}
+
 func main() {
 
 	router := mux.NewRouter()
-	router.HandleFunc("/getusers", returnAllUsers).Methods("GET")
-	router.HandleFunc("/addusers", insertUsersMultipart).Methods("POST")
+	router.HandleFunc("/users", returnAllUsers).Methods("GET")
+	router.HandleFunc("/users", insertUsersMultipart).Methods("POST")
+	router.HandleFunc("/users", updateUsersMultipart).Methods("PUT")
+	router.HandleFunc("/users", deleteUsersMultipart).Methods("DELETE")
 	http.Handle("/", router)
 	fmt.Println("Connected to port 1234")
 	log.Fatal(http.ListenAndServe(":1234", router))
